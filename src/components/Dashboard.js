@@ -43,12 +43,6 @@ const Dashboard = ({ user, onNavigate, onLogout }) => {
     }
   ];
 
-  const recentActivity = [
-    { type: 'received', from: 'Maria Santos', amount: 250.00, time: '2h' },
-    { type: 'sent', to: 'Pedro Costa', amount: -180.50, time: '5h' },
-    { type: 'received', from: 'Empresa XYZ', amount: 1200.00, time: '1d' }
-  ];
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -201,7 +195,7 @@ const Dashboard = ({ user, onNavigate, onLogout }) => {
                   Sua conta está protegida
                 </p>
                 <p className="text-xs text-blue-700 mt-1">
-                  Sistema de detecção de fraudes ativo • Últimas 24h: 0 alertas
+                  Sistema de detecção de fraudes ativo • Últimas 24h: {mockTransactions.filter(el => el.alertType && el.date > new Date(Date.now() - 24 * 60 * 60 * 1000)).length} alertas
                 </p>
               </div>
             </div>

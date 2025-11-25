@@ -33,7 +33,6 @@ const Login = ({ onLogin }) => {
     setError('');
     
     try {
-      // Simulate network delay
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       const result = simulateLogin(cpf, password);
@@ -53,7 +52,6 @@ const Login = ({ onLogin }) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
-        {/* Header */}
         <div className="text-center text-white space-y-4">
           <div className="mx-auto w-16 h-16 bg-white/10 backdrop-blur rounded-2xl flex items-center justify-center">
             <Shield className="w-8 h-8 text-white" />
@@ -64,7 +62,6 @@ const Login = ({ onLogin }) => {
           </div>
         </div>
 
-        {/* Login Card */}
         <Card className="shadow-xl border-0 bg-white/95 backdrop-blur">
           <CardHeader className="space-y-1 text-center">
             <CardTitle className="text-2xl font-semibold text-gray-800">
@@ -145,20 +142,9 @@ const Login = ({ onLogin }) => {
                 )}
               </Button>
             </form>
-
-            {/* Demo credentials */}
-            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-center space-x-2 mb-2">
-                <CreditCard className="w-4 h-4 text-blue-600" />
-                <span className="text-sm font-medium text-blue-800">Credenciais de Demonstração:</span>
-              </div>
-              <p className="text-xs text-blue-700">CPF: 123.456.789-00</p>
-              <p className="text-xs text-blue-700">Senha: 123456</p>
-            </div>
           </CardContent>
         </Card>
 
-        {/* Footer */}
         <div className="text-center text-blue-100 text-sm">
           <p>Ambiente de simulação • Dados fictícios</p>
           <p className="mt-1">🔒 Sua segurança é nossa prioridade</p>

@@ -5,7 +5,6 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Alert, AlertDescription } from './ui/alert';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
 import { 
   ArrowLeft, 
   Send, 
@@ -17,14 +16,64 @@ import {
 } from 'lucide-react';
 import { formatCurrency, detectFraudAlerts, mockTransactions } from '../mock';
 
+const validateCPF = (cpf) => {
+  cpf = cpf.replace(/[^\d]+/g, '');
+  if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
+  let sum = 0, remainder;
+  for (let i = 1; i <= 9; i++) sum += parseInt(cpf.substring(i - 1, i)) * (11 - i);
+  remainder = (sum * 10) % 11;
+  if ((remainder === 10) || (remainder === 11)) remainder = 0;
+  if (remainder !== parseInt(cpf.substring(9, 10))) return false;
+  sum = 0;
+  for (let i = 1; i <= 10; i++) sum += parseInt(cpf.substring(i - 1, i)) * (12 - i);
+  remainder = (sum * 10) % 11;
+  if ((remainder === 10) || (remainder === 11)) remainder = 0;
+  if (remainder !== parseInt(cpf.substring(10, 11))) return false;
+  return true;
+};
+
+const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+const validatePhone = (phone) => {
+  const numbers = phone.replace(/\D/g, '');
+  return numbers.length >= 10 && numbers.length <= 11;
+};
+
+const formatKey = (value, type) => {
+  if (!value) return '';
+  if (type === 'email' || type === 'random') return value;
+
+  const numbers = value.replace(/\D/g, '');
+
+  if (type === 'cpf') {
+    return numbers
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})/, '$1-$2')
+      .replace(/(-\d{2})\d+?$/, '$1');
+  }
+  
+  if (type === 'phone') {
+    return numbers
+      .replace(/(\d{2})(\d)/, '($1) $2')
+      .replace(numbers.length > 10 ? /(\d{5})(\d)/ : /(\d{4})(\d)/, '$1-$2')
+      .replace(/(-\d{4})\d+?$/, '$1');
+  }
+
+  return value;
+};
+
 const TransferPIX = ({ user, onBack, onTransferComplete }) => {
-  const [step, setStep] = useState(1); // 1: form, 2: alerts, 3: auth, 4: success
+  const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     recipientName: '',
     keyType: 'cpf',
     recipientKey: '', 
     amount: ''
   });
+  
+  const [errors, setErrors] = useState({ recipientKey: '' });
+
   const [alerts, setAlerts] = useState([]);
   const [authPassword, setAuthPassword] = useState('');
   const [authError, setAuthError] = useState('');
@@ -37,21 +86,31 @@ const TransferPIX = ({ user, onBack, onTransferComplete }) => {
     { value: 'random', label: 'Chave aleatória' }
   ];
 
-  const formatKey = (value, type) => {
-    const numbers = value.replace(/\D/g, '');
+  const isValidKey = (key, type) => {
+    if (!key) return false;
     switch(type) {
-      case 'cpf':
-        return numbers.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-      case 'phone':
-        return numbers.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
-      default:
-        return value;
+      case 'cpf': return validateCPF(key);
+      case 'email': return validateEmail(key);
+      case 'phone': return validatePhone(key);
+      case 'random': return key.length > 10;
+      default: return true;
     }
   };
 
   const handleKeyChange = (e) => {
-    const formatted = formatKey(e.target.value, formData.keyType);
+    const rawValue = e.target.value;
+    const formatted = formatKey(rawValue, formData.keyType);
+    
     setFormData({ ...formData, recipientKey: formatted });
+
+    if (isValidKey(formatted, formData.keyType)) {
+      setErrors(prev => ({ ...prev, recipientKey: '' }));
+    }
+  };
+
+  const handleTypeChange = (value) => {
+    setFormData({ ...formData, keyType: value, recipientKey: '' });
+    setErrors({ recipientKey: '' });
   };
 
   const handleAmountChange = (e) => {
@@ -63,19 +122,27 @@ const TransferPIX = ({ user, onBack, onTransferComplete }) => {
   const validateForm = () => {
     if (!formData.recipientName.trim()) return 'Nome do destinatário é obrigatório';
     if (!formData.recipientKey.trim()) return 'Chave PIX é obrigatória';
+    
+    if (!isValidKey(formData.recipientKey, formData.keyType)) {
+      setErrors(prev => ({ ...prev, recipientKey: `Chave ${formData.keyType.toUpperCase()} inválida` }));
+      return 'Verifique o formato da chave PIX';
+    }
+
     if (!formData.amount || parseFloat(formData.amount) <= 0) return 'Valor deve ser maior que zero';
     if (parseFloat(formData.amount) > user.balance) return 'Saldo insuficiente';
+    
     return null;
   };
 
   const handleContinue = () => {
     const error = validateForm();
     if (error) {
-      alert(error);
+      if (error !== 'Verifique o formato da chave PIX') {
+        alert(error);
+      }
       return;
     }
 
-    // Check for fraud alerts
     const transferData = {
       amount: parseFloat(formData.amount),
       recipientKey: formData.recipientKey
@@ -87,7 +154,6 @@ const TransferPIX = ({ user, onBack, onTransferComplete }) => {
       setAlerts(detectedAlerts);
       setStep(2);
     } else {
-      // No alerts, proceed to auth
       setStep(3);
     }
   };
@@ -105,12 +171,10 @@ const TransferPIX = ({ user, onBack, onTransferComplete }) => {
     setIsProcessing(true);
     setAuthError('');
     
-    // Simulate auth
     await new Promise(resolve => setTimeout(resolve, 2000));
     
     if (authPassword === '123456') {
       setStep(4);
-      // Add to mock transactions
       const newTransaction = {
         id: Date.now().toString(),
         date: new Date(),
@@ -174,7 +238,6 @@ const TransferPIX = ({ user, onBack, onTransferComplete }) => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-2xl mx-auto px-4 py-4">
           <div className="flex items-center space-x-3">
@@ -210,7 +273,7 @@ const TransferPIX = ({ user, onBack, onTransferComplete }) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Tipo de chave</Label>
-                  <Select value={formData.keyType} onValueChange={(value) => setFormData({...formData, keyType: value, recipientKey: ''})}>
+                  <Select value={formData.keyType} onValueChange={handleTypeChange}>
                     <SelectTrigger className="h-12">
                       <SelectValue />
                     </SelectTrigger>
@@ -226,14 +289,20 @@ const TransferPIX = ({ user, onBack, onTransferComplete }) => {
                   <Label htmlFor="recipientKey">Chave PIX</Label>
                   <Input
                     id="recipientKey"
-                    placeholder={formData.keyType === 'email' ? 'email@exemplo.com' : 
-                               formData.keyType === 'cpf' ? '000.000.000-00' :
-                               formData.keyType === 'phone' ? '(11) 99999-9999' :
-                               'Chave aleatória'}
+                    type={formData.keyType === 'email' ? 'email' : 'text'}
+                    placeholder={
+                      formData.keyType === 'email' ? 'email@exemplo.com' : 
+                      formData.keyType === 'cpf' ? '000.000.000-00' :
+                      formData.keyType === 'phone' ? '(11) 99999-9999' :
+                      'Chave aleatória'
+                    }
                     value={formData.recipientKey}
                     onChange={handleKeyChange}
-                    className="h-12"
+                    className={`h-12 ${errors.recipientKey ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                   />
+                  {errors.recipientKey && (
+                    <p className="text-sm text-red-500 mt-1">{errors.recipientKey}</p>
+                  )}
                 </div>
               </div>
 

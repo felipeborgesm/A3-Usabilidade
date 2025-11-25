@@ -45,71 +45,111 @@ export const mockTransactions = [
 ];
 
 export const mockSuspiciousAccounts = [
+  '111.111.111-11', 
+  '999.888.777-66',
+  '123.456.789-00',
+
   '11999888777',
+  '21996665544',
+
   'suspeito@email.com',
-  '999.888.777-66'
+  'ganhe_dinheiro@tempmail.com',
+  'urubudopix@gmail.com',
+  'suporte.seguranca@bancofalso.com',
+
+  'a1b2c3d4-e5f6-7890-a1b2-c3d4e5f67890'
 ];
 
 // Fraud detection functions
 export const detectFraudAlerts = (transferData, userBalance, recentTransactions) => {
   const alerts = [];
+  const amount = parseFloat(transferData.amount);
   const currentHour = new Date().getHours();
-  
-  // 1. 100% balance transfer
-  if (transferData.amount >= userBalance) {
+    
+  // Calcula média de transações passadas (se houver histórico)
+  const averageTransaction = recentTransactions.length > 0
+    ? recentTransactions.reduce((acc, curr) => acc + curr.amount, 0) / recentTransactions.length
+    : 0;
+
+  const isRoundNumber = amount > 500 && amount % 50 === 0;
+
+
+  if (amount >= userBalance * 0.95) {
     alerts.push({
       type: 'full_balance',
       level: 'critical',
-      message: 'Atenção: Você está tentando transferir todo o seu saldo, o que pode indicar tentativa de esvaziar a conta rapidamente.',
+      message: 'Atenção: Transferência de quase a totalidade do saldo. Confirme se é você mesmo.',
       color: 'red'
     });
   }
-  
-  // 2. Unusual hours (outside 9-18)
-  if (currentHour < 9 || currentHour > 18) {
+
+  const isNightTime = currentHour >= 20 || currentHour <= 6;
+  if (isNightTime && amount > 1000) {
     alerts.push({
-      type: 'unusual_hours',
+      type: 'night_limit',
       level: 'warning',
-      message: 'Operação fora do horário usual detectada. Confirme se você realmente deseja prosseguir.',
+      message: 'Segurança: Transações de alto valor fora do horário comercial (20h às 06h) estão sujeitas a limites reduzidos.',
       color: 'orange'
     });
   }
-  
-  // 3. Suspicious recipient
-  if (mockSuspiciousAccounts.includes(transferData.recipientKey)) {
+
+  const cleanKey = transferData.recipientKey.replace(/[^\w@.]/g, ''); 
+  const isBlacklisted = mockSuspiciousAccounts.some(acc => 
+    acc.replace(/[^\w@.]/g, '') === cleanKey
+  );
+
+  if (isBlacklisted) {
     alerts.push({
       type: 'suspicious_account',
       level: 'critical',
-      message: 'Alerta: Esta conta destinatária possui registros de suspeita ou bloqueios anteriores.',
+      message: 'ALERTA DE SEGURANÇA: Esta chave Pix foi associada a denúncias de fraude anteriormente.',
       color: 'red'
     });
   }
-  
-  // 4. New device (simulated)
-  if (!mockUser.trustedDevice) {
+
+  if (averageTransaction > 0 && amount > averageTransaction * 5) {
     alerts.push({
-      type: 'new_device',
-      level: 'critical', 
-      message: 'Detectamos acesso de um novo dispositivo/localização. Essa operação pode ser arriscada.',
-      color: 'red'
-    });
-  }
-  
-  // 5. Multiple small transfers
-  const recentTransfersCount = recentTransactions.filter(t => {
-    const timeDiff = Date.now() - new Date(t.date).getTime();
-    return timeDiff < 10 * 60 * 1000; // 10 minutes
-  }).length;
-  
-  if (recentTransfersCount >= 3 && transferData.amount < 200) {
-    alerts.push({
-      type: 'multiple_transfers',
+      type: 'profile_deviation',
       level: 'attention',
-      message: 'Possível tentativa de fracionamento detectada: várias transferências seguidas em curto intervalo de tempo.',
+      message: `Valor atípico detectado. Esta transferência é muito superior à sua média habitual (R$ ${averageTransaction.toFixed(2)}).`,
       color: 'yellow'
     });
   }
-  
+
+  const recentTransfers = recentTransactions.filter(t => {
+    const timeDiff = Date.now() - new Date(t.date).getTime();
+    return timeDiff < 15 * 60 * 1000;
+  });
+
+  if (recentTransfers.length >= 2) {
+    const sameRecipient = recentTransfers.filter(t => t.recipientKey === transferData.recipientKey);
+    
+    if (sameRecipient.length >= 1) {
+       alerts.push({
+        type: 'duplicate_transfer',
+        level: 'warning',
+        message: 'Possível duplicidade: Você já enviou dinheiro para este destinatário nos últimos minutos.',
+        color: 'orange'
+      });
+    } else {
+       alerts.push({
+        type: 'high_frequency',
+        level: 'attention',
+        message: 'Alta frequência de transações detectada em curto intervalo.',
+        color: 'yellow'
+      });
+    }
+  }
+
+  if (isRoundNumber && recentTransactions.length < 5) {
+     alerts.push({
+      type: 'social_engineering',
+      level: 'attention',
+      message: 'Dica de segurança: Golpistas costumam solicitar valores "fechados". Confirme a veracidade do destinatário.',
+      color: 'blue'
+    });
+  }
+
   return alerts;
 };
 
