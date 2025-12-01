@@ -8,13 +8,22 @@
 - Jackson da Costa Souza - 125221102685
 - Pedro Henrique Machado - 12522192958
 
-## Para rodar o projeto
+## Comandos
+
+### Se necessário instalar as bibliotecas (primeira vez)
+
+```
+npm install
+```
+
+### Para subir o projeto
 
 ```
 npm start
 ```
 
 ## Login para teste
+
 CPF: 123.456.789-00
 
 Senha: 123456
