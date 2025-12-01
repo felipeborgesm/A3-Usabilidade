@@ -76,7 +76,7 @@ export const detectFraudAlerts = (transferData, userBalance, recentTransactions)
 
   if (amount >= userBalance * 0.95) {
     alerts.push({
-      type: 'full_balance',
+      alertType: 'full_balance',
       level: 'critical',
       message: 'Atenção: Transferência de quase a totalidade do saldo. Confirme se é você mesmo.',
       color: 'red'
@@ -86,7 +86,7 @@ export const detectFraudAlerts = (transferData, userBalance, recentTransactions)
   const isNightTime = currentHour >= 20 || currentHour <= 6;
   if (isNightTime && amount > 1000) {
     alerts.push({
-      type: 'night_limit',
+      alertType: 'night_limit',
       level: 'warning',
       message: 'Segurança: Transações de alto valor fora do horário comercial (20h às 06h) estão sujeitas a limites reduzidos.',
       color: 'orange'
@@ -100,7 +100,7 @@ export const detectFraudAlerts = (transferData, userBalance, recentTransactions)
 
   if (isBlacklisted) {
     alerts.push({
-      type: 'suspicious_account',
+      alertType: 'suspicious_account',
       level: 'critical',
       message: 'ALERTA DE SEGURANÇA: Esta chave Pix foi associada a denúncias de fraude anteriormente.',
       color: 'red'
@@ -109,7 +109,7 @@ export const detectFraudAlerts = (transferData, userBalance, recentTransactions)
 
   if (averageTransaction > 0 && amount > averageTransaction * 5) {
     alerts.push({
-      type: 'profile_deviation',
+      alertType: 'profile_deviation',
       level: 'attention',
       message: `Valor atípico detectado. Esta transferência é muito superior à sua média habitual (R$ ${averageTransaction.toFixed(2)}).`,
       color: 'yellow'
@@ -126,14 +126,14 @@ export const detectFraudAlerts = (transferData, userBalance, recentTransactions)
     
     if (sameRecipient.length >= 1) {
        alerts.push({
-        type: 'duplicate_transfer',
+        alertType: 'duplicate_transfer',
         level: 'warning',
         message: 'Possível duplicidade: Você já enviou dinheiro para este destinatário nos últimos minutos.',
         color: 'orange'
       });
     } else {
        alerts.push({
-        type: 'high_frequency',
+        alertType: 'high_frequency',
         level: 'attention',
         message: 'Alta frequência de transações detectada em curto intervalo.',
         color: 'yellow'
@@ -143,7 +143,7 @@ export const detectFraudAlerts = (transferData, userBalance, recentTransactions)
 
   if (isRoundNumber && recentTransactions.length < 5) {
      alerts.push({
-      type: 'social_engineering',
+      alertType: 'social_engineering',
       level: 'attention',
       message: 'Dica de segurança: Golpistas costumam solicitar valores "fechados". Confirme a veracidade do destinatário.',
       color: 'blue'

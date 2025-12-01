@@ -52,9 +52,12 @@ const History = ({ onBack }) => {
       unusual_hours: 'Horário incomum',
       suspicious_account: 'Conta suspeita',
       new_device: 'Novo dispositivo',
-      multiple_transfers: 'Múltiplas transferências'
+      high_frequency: 'Alta frequência',
+      night_limit: 'Limite noturno',
+      profile_deviation: 'Desvio de perfil',
+      duplicate_transfer: 'Transferência duplicada',
     };
-    return labels[alertType] || alertType;
+    return labels[alertType] || '';
   };
 
   const formatDate = (date) => {
