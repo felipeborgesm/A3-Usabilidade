@@ -121,9 +121,8 @@ export const detectFraudAlerts = (transferData, userBalance, recentTransactions)
     return timeDiff < 15 * 60 * 1000;
   });
 
-  if (recentTransfers.length >= 2) {
+  if (recentTransfers.length >= 1) {
     const sameRecipient = recentTransfers.filter(t => t.recipientKey === transferData.recipientKey);
-    
     if (sameRecipient.length >= 1) {
        alerts.push({
         alertType: 'duplicate_transfer',

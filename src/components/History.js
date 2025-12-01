@@ -56,8 +56,9 @@ const History = ({ onBack }) => {
       night_limit: 'Limite noturno',
       profile_deviation: 'Desvio de perfil',
       duplicate_transfer: 'Transferência duplicada',
+      social_engineering: 'Padrão de valor'
     };
-    return labels[alertType] || '';
+    return labels[alertType] || null;
   };
 
   const formatDate = (date) => {

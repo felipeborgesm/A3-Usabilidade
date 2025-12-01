@@ -182,14 +182,14 @@ const TransferPIX = ({ user, onBack, onTransferComplete }) => {
         recipientKey: formData.recipientKey, 
         amount: parseFloat(formData.amount),
         status: 'completed',
-        alertType: alerts.length > 0 ? alerts[0].type : null,
+        alertType: alerts.length > 0 ? alerts[0].alertType : null,
         alertMessage: alerts.length > 0 ? alerts[0].message : null
       };
       mockTransactions.unshift(newTransaction);
 
       setTimeout(() => {
         onTransferComplete && onTransferComplete(newTransaction);
-      }, 3000);
+      }, 1500);
     } else {
       setAuthError('Senha incorreta');
     }
